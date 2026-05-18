@@ -2502,6 +2502,128 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (statWantDashEl) statWantDashEl.textContent = wantCount;
         if (statVibeEl) statVibeEl.textContent = topVibe;
 
+        // Initialize Extended Stats (Goals, Streak, Leaderboard)
+        const currentYear = new Date().getFullYear();
+        if (document.getElementById('current-year-display')) {
+            document.getElementById('current-year-display').textContent = currentYear;
+        }
+
+        const loadExtendedStats = async () => {
+            const token = SafeStorage.get('bibliodrift_token');
+            if (!token) return;
+
+            try {
+                // Fetch Stats & Goals
+                const statsResponse = await fetch(`${MOOD_API_BASE}/stats?user_id=${user.id}&year=${currentYear}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (statsResponse.ok) {
+                    const stats = await statsResponse.json();
+                    
+                    // Update Streak
+                    if (stats.current_streak > 0) {
+                        const streakBadge = document.getElementById('streak-badge');
+                        const streakCount = document.getElementById('streak-count');
+                        if (streakBadge && streakCount) {
+                            streakBadge.style.display = 'inline-block';
+                            streakCount.textContent = stats.current_streak;
+                        }
+                    }
+
+                    // Update Goal Progress
+                    if (stats.goal) {
+                        const progressText = document.getElementById('goal-progress-text');
+                        const barGoal = document.getElementById('bar-goal');
+                        const target = stats.goal.target_books || 0;
+                        const completed = stats.books_this_year || 0;
+
+                        if (progressText) progressText.textContent = `${completed} / ${target} books`;
+                        if (barGoal && target > 0) {
+                            barGoal.style.width = `${Math.min(100, (completed / target) * 100)}%`;
+                        }
+                    } else {
+                        const progressText = document.getElementById('goal-progress-text');
+                        if (progressText) progressText.textContent = 'No goal set for this year';
+                    }
+                }
+
+                // Fetch Leaderboard
+                const lbResponse = await fetch(`${MOOD_API_BASE}/stats/leaderboard?year=${currentYear}&limit=5`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (lbResponse.ok) {
+                    const leaderboard = await lbResponse.json();
+                    const lbSection = document.getElementById('leaderboard-section');
+                    const lbList = document.getElementById('leaderboard-list');
+                    
+                    if (leaderboard && leaderboard.length > 0 && lbSection && lbList) {
+                        lbSection.style.display = 'block';
+                        lbList.innerHTML = leaderboard.map((entry, index) => `
+                            <div class="leaderboard-entry" style="display: flex; align-items: center; justify-content: space-between; padding: 10px; border-bottom: 1px solid var(--border-color); ${entry.user_id === user.id ? 'background: rgba(139, 115, 85, 0.1); border-radius: 8px;' : ''}">
+                                <div style="display: flex; align-items: center; gap: 15px;">
+                                    <span style="font-weight: bold; min-width: 25px;">#${index + 1}</span>
+                                    <span>${entry.username} ${entry.user_id === user.id ? '(You)' : ''}</span>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div style="font-weight: 600;">${entry.total_books} books</div>
+                                    <div style="font-size: 0.75rem; color: var(--text-muted);">${entry.total_pages.toLocaleString()} pages</div>
+                                </div>
+                            </div>
+                        `).join('');
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading extended stats:', error);
+            }
+        };
+
+        // Goal Editing Logic
+        const editGoalBtn = document.getElementById('edit-goal-btn');
+        const saveGoalBtn = document.getElementById('save-goal-btn');
+        const goalInput = document.getElementById('goal-input');
+        const goalEditGroup = document.getElementById('goal-edit-group');
+
+        if (editGoalBtn) {
+            editGoalBtn.addEventListener('click', () => {
+                goalEditGroup.style.display = goalEditGroup.style.display === 'none' ? 'flex' : 'none';
+                if (goalEditGroup.style.display === 'flex') goalInput.focus();
+            });
+        }
+
+        if (saveGoalBtn) {
+            saveGoalBtn.addEventListener('click', async () => {
+                const target = parseInt(goalInput.value);
+                if (isNaN(target) || target < 1) return;
+
+                const token = SafeStorage.get('bibliodrift_token');
+                try {
+                    const response = await fetch(`${MOOD_API_BASE}/stats/goal`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            user_id: user.id,
+                            year: currentYear,
+                            target_books: target
+                        })
+                    });
+
+                    if (response.ok) {
+                        goalEditGroup.style.display = 'none';
+                        loadExtendedStats(); // Refresh
+                    }
+                } catch (error) {
+                    console.error('Failed to save goal:', error);
+                }
+            });
+        }
+
+        loadExtendedStats();
+
         // Progress Bar Calculation
         const barFinished = document.getElementById('bar-finished');
         const barCurrent = document.getElementById('bar-current');
