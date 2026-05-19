@@ -3427,6 +3427,7 @@ display: grid;
 /* ===== ENHANCED FOOTER STYLES ===== */
 .main-footer {
     background: var(--card-bg);
+    background-color: #ffdd6c;
     /* Use card-bg for better contrast in dark mode */
     border-top: 1px solid var(--glass-border);
     padding: 3rem 2rem 1rem;
