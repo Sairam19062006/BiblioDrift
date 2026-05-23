@@ -81,7 +81,7 @@
 // Do NOT re-declare them here — use the globals from config.js directly.
 const IS_DEV = typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname);
 const moodAnalysisCache = new Map();
-const APP_ROUTE = window.location.pathname.endsWith('/app.html') ? 'app.html' : 'index.html';
+const APP_ROUTE = window.location.pathname.endsWith('/app.html') ? 'app.html' : 'app.html';
 
 const delay = (ms) => new Promise((res) => setTimeout(res, ms));
 

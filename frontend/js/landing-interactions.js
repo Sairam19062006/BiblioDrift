@@ -201,16 +201,7 @@
         link.addEventListener('click', (event) => {
             let targetHref = link.getAttribute('href');
             if (!targetHref || targetHref.startsWith('#')) return;
-            
-            // Rewrite index.html to /app in production
-            if (targetHref.startsWith('index.html')) {
-                const isLocalPreview = window.location.protocol === 'file:' ||
-                  ['localhost', '127.0.0.1', ''].includes(window.location.hostname);
-                
-                if (!isLocalPreview) {
-                    targetHref = targetHref.replace('index.html', '/app');
-                }
-            }
+            // The link is natively app.html now. No need to intercept and rewrite URLs.
 
             event.preventDefault();
             document.body.classList.add('is-leaving');
